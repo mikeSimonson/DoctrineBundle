@@ -35,9 +35,3 @@
         {%- endfor -%}
     </pre>
 {% endif %}
-
-{% if not app.request.isXmlHttpRequest %}
-    {% include '@Doctrine/Collector/_toggle_column.html.twig' %}
-{% endif %}
-
-

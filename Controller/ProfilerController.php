@@ -59,7 +59,7 @@ class ProfilerController implements ContainerAwareInterface
         $queries = $profile->getCollector('db')->getQueries();
 
         if (!isset($queries[$connectionName][$query])) {
-            return new Response('This query does not exist.');
+            return new Response('This query does not exist.', 404);
         }
 
         $query = $queries[$connectionName][$query];
@@ -97,12 +97,15 @@ class ProfilerController implements ContainerAwareInterface
         $queries = $profile->getCollector('db')->getQueries();
 
         if (!isset($queries[$connectionName][$query])) {
-            return new Response('This query does not exist.');
+            return new Response('This query does not exist.', 404);
         }
 
         /** @var $connection \Doctrine\DBAL\Connection */
         $connection = $this->container->get('doctrine')->getConnection($connectionName);
         $query = $queries[$connectionName][$query];
+        if (!$query['explainable']) {
+            return new Response('This query cannot be run again (parameters lost at serialization).');
+        }
 
         $results = $connection
             ->executeQuery($query['sql'], $query['params'], $query['types'])
