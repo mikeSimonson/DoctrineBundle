@@ -36,15 +36,31 @@ class DoctrineExtensionTest extends \PHPUnit_Framework_TestCase
 
         $extension->load(array(array('dbal' => array())), $container);
 
-        // doctrine.dbal.default_connection
-        $this->assertEquals('%doctrine.default_connection%', $container->getDefinition('doctrine')->getArgument(3));
         $this->assertEquals('default', $container->getParameter('doctrine.default_connection'));
-        $this->assertEquals('root', $container->getDefinition('doctrine.dbal.default_connection')->getArgument(0)['user']);
-        $this->assertNull($container->getDefinition('doctrine.dbal.default_connection')->getArgument(0)['password']);
-        $this->assertEquals('localhost', $container->getDefinition('doctrine.dbal.default_connection')->getArgument(0)['host']);
-        $this->assertNull($container->getDefinition('doctrine.dbal.default_connection')->getArgument(0)['port']);
-        $this->assertEquals('pdo_mysql', $container->getDefinition('doctrine.dbal.default_connection')->getArgument(0)['driver']);
-        $this->assertEquals(array(), $container->getDefinition('doctrine.dbal.default_connection')->getArgument(0)['driverOptions']);
+        $this->assertDICConstructorArguments(
+            $container->getDefinition('doctrine'),
+            [
+                new Reference('service_container'),
+                '%doctrine.connections%',
+                '%doctrine.entity_managers%',
+                '%doctrine.default_connection%',
+                '%doctrine.default_entity_manager%',
+            ]);
+        $this->assertDICConstructorArguments(
+            $container->getDefinition('doctrine.dbal.default_connection'),[
+            [
+                'host' => 'localhost',
+                'port' => null,
+                'user' => 'root',
+                'password' => null,
+                'driver' => 'pdo_mysql',
+                'driverOptions' => [],
+                'defaultTableOptions' => [],
+            ],
+            new Reference('doctrine.dbal.default_connection.configuration'),
+            new Reference('doctrine.dbal.default_connection.event_manager'),
+            []
+        ]);
     }
 
     public function testDbalOverrideDefaultConnection()
