@@ -63,6 +63,34 @@ class DoctrineExtensionTest extends \PHPUnit_Framework_TestCase
         ]);
     }
 
+    public function testOrmGenerateDefaultConnectionConfiguration()
+    {
+        $container = $this->getContainer();
+        $extension = new DoctrineExtension();
+
+        $container->registerExtension($extension);
+
+        $config = BundleConfigurationBuilder::createBuilder()->addBaseConnection()->build();
+        $config['orm'] = [];
+
+        $extension->load(array($config), $container);
+
+        $this->assertDICConstructorArguments(
+            $container->getDefinition('doctrine.orm.configuration'), [
+        ]);
+        $this->assertDICConstructorArguments(
+            $container->getDefinition('doctrine.orm.default_configuration'), [
+        ]);
+        $this->assertDICConstructorArguments(
+            $container->getDefinition('doctrine.orm.default_entity_manager'), [
+                new Reference('doctrine.dbal.default_connection'),
+                new Reference('doctrine.orm.default_configuration'),
+        ]);
+        $this->assertDICConstructorArguments(
+            $container->getDefinition('doctrine.orm.naming_strategy.default'), [
+        ]);
+    }
+
     public function testDbalOverrideDefaultConnection()
     {
         $container = $this->getContainer();
