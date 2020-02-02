@@ -26,12 +26,17 @@ class DoctrineDataCollector extends BaseCollector
 
     /** @var string[] */
     private $groupedQueries;
+    /**
+     * @var bool
+     */
+    private $shouldValidateSchema;
 
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, bool $shouldValidateSchema = true)
     {
         $this->registry = $registry;
 
         parent::__construct($registry);
+        $this->shouldValidateSchema = $shouldValidateSchema;
     }
 
     /**
@@ -59,25 +64,26 @@ class DoctrineDataCollector extends BaseCollector
         ];
 
         foreach ($this->registry->getManagers() as $name => $em) {
-            $entities[$name] = [];
-            /** @var ClassMetadataFactory $factory */
-            $factory   = $em->getMetadataFactory();
-            $validator = new SchemaValidator($em);
+            if ($this->shouldValidateSchema) {
+                $entities[$name] = [];
+                /** @var ClassMetadataFactory $factory */
+                $factory   = $em->getMetadataFactory();
+                $validator = new SchemaValidator($em);
+                /** @var $class \Doctrine\ORM\Mapping\ClassMetadataInfo */
+                foreach ($factory->getLoadedMetadata() as $class) {
+                    if (isset($entities[$name][$class->getName()])) {
+                        continue;
+                    }
 
-            /** @var $class \Doctrine\ORM\Mapping\ClassMetadataInfo */
-            foreach ($factory->getLoadedMetadata() as $class) {
-                if (isset($entities[$name][$class->getName()])) {
-                    continue;
+                    $classErrors = $validator->validateClass($class);
+                    $entities[$name][$class->getName()] = $class->getName();
+
+                    if (empty($classErrors)) {
+                        continue;
+                    }
+
+                    $errors[$name][$class->getName()] = $classErrors;
                 }
-
-                $classErrors                        = $validator->validateClass($class);
-                $entities[$name][$class->getName()] = $class->getName();
-
-                if (empty($classErrors)) {
-                    continue;
-                }
-
-                $errors[$name][$class->getName()] = $classErrors;
             }
 
             if (version_compare(Version::VERSION, '2.5.0-DEV') < 0) {
